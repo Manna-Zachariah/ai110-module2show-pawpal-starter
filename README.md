@@ -62,18 +62,32 @@ Today's Schedule
 
 ## 🧪 Testing PawPal+
 
-```bash
-# Run the full test suite:
-pytest
+Run the full test suite with:
 
-# Run with coverage:
-pytest --cov
+```bash
+python -m pytest
 ```
+
+The suite (`tests/test_pawpal.py`, 26 tests) covers:
+
+- **Sorting** — `sort_tasks()` orders by descending priority then shorter duration; `sort_by_time()` orders timed tasks chronologically and pushes untimed tasks to the end.
+- **Recurring tasks** — completing a `daily`/`weekly` task auto-spawns the correctly-dated next occurrence (`Task.mark_complete()`, `Task.next_occurrence()`, `Pet.complete_task()`), non-recurring tasks return `None`, and `expand_recurring_tasks()` generates one occurrence per applicable day.
+- **Conflict detection** — `detect_conflicts()`/`get_conflict_warnings()` flag overlapping and exact-same-time tasks, but correctly ignore back-to-back tasks that just touch at the boundary.
+- **Task filtering/lookup** — `filter_tasks()` respects the `available_time` budget (including the exact-fit boundary) and tracks skipped tasks; `Owner.get_tasks_by_pet()`/`get_tasks_by_status()` and `Scheduler.filter_by_pet()`/`filter_by_status()` narrow correctly.
+- **Edge cases & validation** — an empty task list produces a clean "no tasks" plan; invalid `priority`/`recurrence` values raise `ValueError`; `edit_task()`/`remove_task()` handle an unknown `task_id`.
 
 Sample test output:
 
 ```
-# Paste your pytest output here
+======================================================================================================================================== test session starts =========================================================================================================================================
+platform darwin -- Python 3.13.0, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/mannameriahzachariah/AI110/Week4/ai110-module2show-pawpal-starter
+plugins: anyio-4.14.1
+collected 26 items                                                                                                                                                                                                                                                                                   
+
+tests/test_pawpal.py ..........................                                                                                                                                                                                                                                                [100%]
+
+========================================================================================================================================= 26 passed in 0.04s =========================================================================================================================================
 ```
 
 ## 📐 Smarter Scheduling

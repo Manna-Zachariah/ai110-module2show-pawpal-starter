@@ -120,8 +120,17 @@ I kept option 1 and rejected option 2. The `itertools.combinations` version is s
 
 **b. Confidence**
 
-- How confident are you that your scheduler works correctly?
-- What edge cases would you test next if you had more time?
+**Confidence Level: ⭐⭐⭐⭐☆ (4/5)**
+
+All 26 tests in `tests/test_pawpal.py` pass, covering the core scheduling paths: priority/duration sorting, chronological sorting, recurring-task generation (daily/weekly), conflict detection (including exact-overlap and back-to-back boundaries), time-budget filtering (including the exact-fit boundary), and input validation (invalid `priority`/`recurrence` raise `ValueError`). That gives me solid confidence in the scheduler's core logic — the pieces most likely to have subtle bugs (off-by-one boundaries in time comparisons, recurrence date math) are explicitly exercised and pass.
+
+I'm holding back from 5/5 because coverage isn't complete: `Owner.add_pet()`'s duplicate-name rejection, `Task.end_time` when `preferred_time` is `None`, and `Task.__str__`/`priority_score()` aren't directly tested. There's also no test for multi-day recurring expansion combined with conflict detection together (each is tested in isolation), and no randomized/property-based testing to shake out inputs I haven't thought of.
+
+If I had more time, I'd test next:
+- `Owner.add_pet()` rejecting a duplicate pet name.
+- `Task.end_time` returning `None` when `preferred_time` is unset.
+- A combined scenario: recurring tasks expanded across several days, then run through `detect_conflicts()` and `generate_plan()` together, to catch integration bugs the isolated unit tests wouldn't.
+- Malformed `preferred_time`/`start_time` strings (e.g. `"9:00"` vs `"09:00"`, or invalid times) to see how gracefully the scheduler degrades.
 
 ---
 

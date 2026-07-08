@@ -2,6 +2,8 @@ import sys
 from datetime import date
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from pawpal_system import Owner, Pet, Scheduler, Task, expand_recurring_tasks
@@ -216,3 +218,89 @@ def test_get_conflict_warnings_returns_empty_list_when_no_conflicts():
     )
 
     assert scheduler.get_conflict_warnings() == []
+
+
+def test_sort_tasks_orders_by_priority_then_shorter_duration():
+    scheduler = Scheduler(
+        tasks=[
+            Task(name="Long high task", duration=40, priority="high", pet_name="Rex"),
+            Task(name="Low task", duration=5, priority="low", pet_name="Rex"),
+            Task(name="Short high task", duration=10, priority="high", pet_name="Rex"),
+            Task(name="Medium task", duration=15, priority="medium", pet_name="Rex"),
+        ],
+        available_time=90,
+        start_time="08:00",
+    )
+
+    scheduler.sort_tasks()
+
+    assert [t.name for t in scheduler.tasks] == [
+        "Short high task",
+        "Long high task",
+        "Medium task",
+        "Low task",
+    ]
+
+
+def test_filter_tasks_keeps_task_that_exactly_fills_available_time():
+    scheduler = Scheduler(
+        tasks=[Task(name="Full budget walk", duration=30, priority="high", pet_name="Rex")],
+        available_time=30,
+        start_time="08:00",
+    )
+
+    scheduler.filter_tasks()
+
+    assert [t.name for t in scheduler.tasks] == ["Full budget walk"]
+    assert scheduler.skipped_tasks == []
+
+
+def test_generate_plan_with_no_tasks_produces_empty_schedule():
+    pet = Pet(name="Rex", species="Dog")
+    scheduler = Scheduler(tasks=pet.list_tasks(), available_time=60, start_time="08:00")
+
+    scheduler.generate_plan()
+
+    assert scheduler.scheduled_items == []
+    assert scheduler.display_plan() == "No tasks scheduled."
+    assert scheduler.explain() == "No tasks were scheduled."
+
+
+def test_detect_conflicts_does_not_flag_back_to_back_tasks():
+    scheduler = Scheduler(
+        tasks=[
+            Task(name="Morning walk", duration=30, priority="high", pet_name="Rex", preferred_time="08:00"),
+            Task(name="Feed breakfast", duration=15, priority="medium", pet_name="Rex", preferred_time="08:30"),
+        ],
+        available_time=90,
+        start_time="08:00",
+    )
+
+    assert scheduler.detect_conflicts() == []
+
+
+def test_task_rejects_invalid_priority():
+    with pytest.raises(ValueError):
+        Task(name="Bad task", duration=10, priority="urgent", pet_name="Rex")
+
+
+def test_task_rejects_invalid_recurrence():
+    with pytest.raises(ValueError):
+        Task(name="Bad task", duration=10, priority="low", pet_name="Rex", recurrence="monthly")
+
+
+def test_edit_task_raises_for_unknown_task_id():
+    pet = Pet(name="Rex", species="Dog")
+    pet.add_task(Task(name="Morning walk", duration=30, priority="high", pet_name=pet.name))
+
+    with pytest.raises(ValueError):
+        pet.edit_task("not-a-real-id", duration=45)
+
+
+def test_remove_task_is_a_no_op_for_unknown_task_id():
+    pet = Pet(name="Rex", species="Dog")
+    pet.add_task(Task(name="Morning walk", duration=30, priority="high", pet_name=pet.name))
+
+    pet.remove_task("not-a-real-id")
+
+    assert len(pet.tasks) == 1
