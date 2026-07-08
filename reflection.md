@@ -72,6 +72,8 @@ Pet.add_task() now force-sets task.pet_name to the pet it's being added to, inst
 Task.priority is now validated against "low"/"medium"/"high" on creation, since nothing previously stopped a typo like "High" from silently breaking the scheduler's sorting later.
 Owner.add_pet() now rejects duplicate pet names, since pet-name lookups (get_pet()) and grouping the plan by pet assume names are unique.
 I made these changes because they were bugs waiting to happen once real scheduling logic was implemented — better to catch a missing task_id or an unvalidated priority at design time than debug a silently wrong daily plan later. I updated the UML diagram to match by adding task_id to Task.
+
+Added an is_complete flag and mark_complete() method to Task so completion status can be tracked and tested, updated uml_draft.mmd to match.
 ---
 
 ## 2. Scheduling Logic and Tradeoffs
