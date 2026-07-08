@@ -2,6 +2,18 @@
 
 You are building **PawPal+**, a Streamlit app that helps a pet owner plan care tasks for their pet.
 
+## ✨ Features
+
+- **Owner & pet profiles** — one owner, any number of pets, each with its own independent task list.
+- **Task tracking** — add care tasks with a name, duration, priority (`low`/`medium`/`high`), an optional preferred time, and an optional recurrence (`daily`/`weekly`).
+- **Priority-based scheduling** — `Scheduler.sort_tasks()` orders the day's plan by descending priority, then shortest duration, so a long low-priority task can never bump something urgent.
+- **Chronological scheduling** — `Scheduler.sort_by_time()` orders the same tasks by time of day instead, for owners who think in "what's next" rather than "what matters most."
+- **Time-budget filtering** — `Scheduler.filter_tasks()` fits as many tasks as possible into the owner's available time and tracks whatever gets skipped, so nothing silently disappears from the plan.
+- **Conflict warnings** — `Scheduler.detect_conflicts()` / `get_conflict_warnings()` flag any two tasks — even across different pets — whose preferred times overlap, since one owner can't be in two places at once.
+- **Recurring tasks** — completing a `daily`/`weekly` task automatically spawns its next dated occurrence (`Task.mark_complete()`, `Task.next_occurrence()`, `Pet.complete_task()`); `expand_recurring_tasks()` can also pre-expand a recurrence across a date range.
+- **Filtering & lookup** — narrow the task list by pet or completion status (`Scheduler.filter_by_pet()`/`filter_by_status()`, `Owner.get_tasks_by_pet()`/`get_tasks_by_status()`).
+- **Plan explanations** — `Scheduler.explain()` summarizes what was scheduled, what was skipped and why, and any conflicts found, in plain language.
+
 ## Scenario
 
 A busy pet owner needs help staying consistent with pet care. They want an assistant that can:
@@ -124,12 +136,96 @@ tests/test_pawpal.py ..........................                                 
 
 ## 📸 Demo Walkthrough
 
-Describe your app in numbered steps so a reader can follow along without watching a video:
+### What you can do in the UI
 
-1. <!-- Describe this step -->
-2. <!-- Describe this step -->
-3. <!-- Describe this step -->
-4. <!-- Describe this step -->
-5. <!-- Add more steps as needed -->
+- **Owner & Pets** — enter an owner name and add one or more pets (name + species).
+- **Tasks** — for the selected pet, add a task with a title, duration, priority, an optional preferred time (enables conflict checking), and a recurrence. Every task shows up in a table with its time, recurrence, and status.
+- **Manage tasks** — from the "Manage tasks" expander, mark any task complete (auto-creating its next occurrence if it recurs) or remove it outright.
+- **Live conflict check** — the moment two tasks across *any* of your pets overlap in time, a warning appears immediately below the task list — before you've even generated a schedule.
+- **Build Today's Plan** — set your available time and start time, choose to order tasks by priority or by time of day, and generate the plan.
+
+### Example workflow
+
+1. Enter an owner name and add a pet, e.g. "Rex" (dog).
+2. Add a few tasks for Rex: "Morning walk" (30 min, high priority, 08:00), "Give medication" (5 min, high priority, 08:00, daily), "Brush fur" (10 min, low priority, no set time).
+3. Because "Morning walk" and "Give medication" both land at 08:00, a conflict warning appears immediately under the task list — no need to generate a schedule first to find out.
+4. Set available time (e.g. 60 minutes) and a start time (e.g. 08:00), choose "Priority" ordering, and click **Generate schedule**.
+5. The app displays the plan as a table (time, task, pet, priority, duration), lists any tasks skipped for not fitting in the available time, and repeats the conflict warning so it isn't missed.
+6. Expand **"Why this plan?"** to read `Scheduler.explain()`'s plain-language summary of what was included, what was skipped, and why.
+7. Mark "Give medication" complete — since it's `daily`, its next occurrence is automatically added to Rex's task list for tomorrow.
+
+### Key Scheduler behaviors on display
+
+- **Sorting** — switching between "Priority" and "Time of day" swaps `sort_tasks()` for `sort_by_time()`, visibly reordering the generated plan.
+- **Conflict warnings** — `get_conflict_warnings()` surfaces overlapping tasks both live (as tasks are added) and again at schedule-generation time.
+- **Time-budget filtering** — `filter_tasks()` decides what fits; anything left over shows up as a skipped-task warning instead of silently vanishing from the plan.
+- **Recurrence** — completing a `daily`/`weekly` task calls `Pet.complete_task()`, which auto-spawns and displays the next occurrence.
+
+### Sample Output from running main.py
+
+```
+--- Tasks in the order they were added (out of order by time) ---
+09:00 — Give medication (5 min) [priority: high]
+08:00 — Morning walk (30 min) [priority: high]
+(unscheduled) — Brush fur (10 min) [priority: low]
+08:15 — Feed breakfast (15 min) [priority: medium]
+08:00 — Litter box cleanup (10 min) [priority: medium]
+
+Today's Schedule
+08:00 — Give medication (5 min) [priority: high]
+08:05 — Morning walk (30 min) [priority: high]
+08:35 — Litter box cleanup (10 min) [priority: medium]
+08:45 — Feed breakfast (15 min) [priority: medium]
+09:00 — Brush fur (10 min) [priority: low]
+
+Included 5 task(s): Give medication (high), Morning walk (high), Litter box cleanup (medium), Feed breakfast (medium), Brush fur (low). Warning: 'Morning walk' (Rex, 08:00-08:30) overlaps 'Litter box cleanup' (Whiskers, 08:00-08:10). Warning: 'Morning walk' (Rex, 08:00-08:30) overlaps 'Feed breakfast' (Whiskers, 08:15-08:30).
+
+--- sort_by_time(): same tasks, now chronological ---
+08:00 — Morning walk (30 min) [priority: high]
+08:00 — Litter box cleanup (10 min) [priority: medium]
+08:15 — Feed breakfast (15 min) [priority: medium]
+09:00 — Give medication (5 min) [priority: high]
+(unscheduled) — Brush fur (10 min) [priority: low]
+
+--- Owner.get_tasks_by_pet('Rex') ---
+Give medication (5 min) [priority: high]
+Morning walk (30 min) [priority: high]
+Brush fur (10 min) [priority: low]
+
+--- Owner.get_tasks_by_status(is_complete=False) ---
+Give medication (5 min) [priority: high]
+Morning walk (30 min) [priority: high]
+Feed breakfast (15 min) [priority: medium]
+Litter box cleanup (10 min) [priority: medium]
+
+--- Owner.get_tasks_by_status(is_complete=True) ---
+Brush fur (10 min) [priority: low]
+
+--- Scheduler.filter_by_pet('Rex') ---
+Give medication (5 min) [priority: high]
+Morning walk (30 min) [priority: high]
+Brush fur (10 min) [priority: low]
+
+--- Scheduler.filter_by_status(is_complete=False) ---
+Give medication (5 min) [priority: high]
+Morning walk (30 min) [priority: high]
+Feed breakfast (15 min) [priority: medium]
+Litter box cleanup (10 min) [priority: medium]
+
+--- Expand recurring tasks over 3 days ---
+2026-07-07 — Give medication (5 min) [priority: high]
+2026-07-08 — Give medication (5 min) [priority: high]
+2026-07-09 — Give medication (5 min) [priority: high]
+
+--- Conflict detection ---
+Warning: 'Morning walk' (Rex, 08:00-08:30) overlaps 'Litter box cleanup' (Whiskers, 08:00-08:10).
+Warning: 'Morning walk' (Rex, 08:00-08:30) overlaps 'Feed breakfast' (Whiskers, 08:15-08:30).
+
+--- Completing a recurring task auto-spawns its next occurrence ---
+Before: Rex has 3 task(s)
+Completed 'Give medication' on 2026-07-07.
+After:  Rex has 4 task(s)
+Auto-spawned: Give medication (5 min) [priority: high] due on 2026-07-08
+```
 
 **Screenshot or video** *(optional)*: <!-- Insert a screenshot or link to a demo video here -->

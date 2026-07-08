@@ -1,0 +1,66 @@
+classDiagram
+    class Owner {
+        -name: String
+        -pets: List~Pet~
+        -available_time: int
+        +add_pet(pet: Pet) void
+        +get_pet(name: String) Pet
+        +get_all_tasks() List~Task~
+        +get_tasks_by_pet(pet_name: String) List~Task~
+        +get_tasks_by_status(is_complete: bool) List~Task~
+    }
+
+    class Pet {
+        -name: String
+        -species: String
+        -tasks: List~Task~
+        +add_task(task: Task) void
+        +edit_task(task_id: String, updates: dict) void
+        +remove_task(task_id: String) void
+        +complete_task(task_id: String, today: date) Task
+        +list_tasks() List~Task~
+    }
+
+    class Task {
+        -name: String
+        -duration: int
+        -priority: String
+        -pet_name: String
+        -task_id: String
+        -is_complete: bool
+        -preferred_time: String
+        -recurrence: String
+        -occurrence_date: String
+        +priority_score() int
+        +end_time() String
+        +mark_complete(today: date) Task
+        +next_occurrence(today: date) Task
+        +__str__() String
+    }
+
+    class Scheduler {
+        -tasks: List~Task~
+        -available_time: int
+        -start_time: String
+        -scheduled_items: List
+        -skipped_tasks: List~Task~
+        +from_owner(owner: Owner, start_time: String) Scheduler
+        +sort_tasks() void
+        +sort_by_time() void
+        +filter_by_pet(pet_name: String) void
+        +filter_by_status(is_complete: bool) void
+        +detect_conflicts() List~Tuple~
+        +get_conflict_warnings() List~String~
+        +filter_tasks() void
+        +generate_plan() void
+        +explain() String
+        +display_plan() String
+    }
+
+    Owner "1" *-- "0..*" Pet : has
+    Pet "1" *-- "*" Task : has
+    Owner ..> Scheduler : provides tasks + constraints to
+    Scheduler ..> Task : sorts/filters/detects conflicts/schedules
+    Task ..> Task : mark_complete()/next_occurrence() spawn the next recurring copy
+
+    note "Module-level helper (not a class):\nexpand_recurring_tasks(tasks: List~Task~, start_date: date, num_days: int) List~Task~\nPre-expands a recurring Task into one dated occurrence per applicable day in a range."
