@@ -88,6 +88,13 @@ Added an is_complete flag and mark_complete() method to Task so completion statu
 - Describe one tradeoff your scheduler makes.
 - Why is that tradeoff reasonable for this scenario?
 
+`Scheduler.detect_conflicts()` checks every pair of timed tasks for overlap, which is O(n²): for a task list of size n, it does roughly n²/2 comparisons. I asked my AI assistant how this could be simplified for readability or performance, and it offered two directions:
+
+1. A purely readability-focused rewrite using `itertools.combinations()` instead of a manual nested loop with `enumerate`/index-slicing — same O(n²) cost, but reads more like "for every pair of tasks" instead of exposing the loop bookkeeping.
+2. A performance-focused rewrite that sorts tasks by start time first, then breaks out of the inner loop early once a task starts after the current one has already ended (nothing later in a sorted list can still overlap it). Still O(n²) worst case, but much faster in the common case where most tasks don't overlap.
+
+I kept option 1 and rejected option 2. The `itertools.combinations` version is strictly easier to read with no downside, so it was an easy adopt. The sweep-line version is "more Pythonic" and asymptotically kinder in the average case, but it asks the reader to trust a `break` statement's correctness ("why is it safe to stop here?") instead of seeing the comparison happen directly — for a feature whose entire audience is one pet owner's daily task list (realistically a dozen or so tasks, never thousands), that's added cognitive load for a performance gain that will never matter at this scale. I'd reconsider if PawPal+ ever scheduled a shared household's or a boarding facility's tasks across many pets and owners at once, where n could grow large enough for the difference to be real.
+
 ---
 
 ## 3. AI Collaboration
