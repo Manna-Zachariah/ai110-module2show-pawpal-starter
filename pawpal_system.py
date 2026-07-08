@@ -4,8 +4,11 @@ Class stubs generated from diagrams/uml_draft.mmd. No scheduling logic yet —
 attributes and method signatures only.
 """
 
-from dataclasses import dataclass, field
+import uuid
+from dataclasses import dataclass, field, fields
 from typing import List, Optional
+
+VALID_PRIORITIES = {"low", "medium", "high"}
 
 
 @dataclass
@@ -14,6 +17,12 @@ class Task:
     duration: int
     priority: str
     pet_name: str
+    task_id: str = field(default_factory=lambda: uuid.uuid4().hex)
+
+    def __post_init__(self) -> None:
+        self.priority = self.priority.lower()
+        if self.priority not in VALID_PRIORITIES:
+            raise ValueError(f"priority must be one of {VALID_PRIORITIES}, got {self.priority!r}")
 
     def priority_score(self) -> int:
         pass
@@ -29,13 +38,24 @@ class Pet:
     tasks: List[Task] = field(default_factory=list)
 
     def add_task(self, task: Task) -> None:
-        pass
+        task.pet_name = self.name
+        self.tasks.append(task)
 
     def edit_task(self, task_id: str, **updates) -> None:
-        pass
+        task = next((t for t in self.tasks if t.task_id == task_id), None)
+        if task is None:
+            raise ValueError(f"no task with task_id {task_id!r} for pet {self.name!r}")
+
+        valid_fields = {f.name for f in fields(Task)}
+        unknown = set(updates) - valid_fields
+        if unknown:
+            raise AttributeError(f"Task has no field(s): {sorted(unknown)}")
+
+        for key, value in updates.items():
+            setattr(task, key, value)
 
     def remove_task(self, task_id: str) -> None:
-        pass
+        self.tasks = [t for t in self.tasks if t.task_id != task_id]
 
     def list_tasks(self) -> List[Task]:
         pass
@@ -48,7 +68,9 @@ class Owner:
     available_time: int = 0
 
     def add_pet(self, pet: Pet) -> None:
-        pass
+        if any(p.name == pet.name for p in self.pets):
+            raise ValueError(f"a pet named {pet.name!r} already exists for this owner")
+        self.pets.append(pet)
 
     def get_pet(self, name: str) -> Optional[Pet]:
         pass
@@ -65,6 +87,10 @@ class Scheduler:
         self.scheduled_items: List = []
         self.skipped_tasks: List[Task] = []
 
+    @classmethod
+    def from_owner(cls, owner: Owner, start_time: str) -> "Scheduler":
+        return cls(owner.get_all_tasks(), owner.available_time, start_time)
+
     def sort_tasks(self) -> None:
         pass
 
@@ -72,6 +98,8 @@ class Scheduler:
         pass
 
     def generate_plan(self) -> None:
+        """Should call self.sort_tasks() then self.filter_tasks() before
+        building scheduled_items, so sorting always happens before filtering."""
         pass
 
     def explain(self) -> str:

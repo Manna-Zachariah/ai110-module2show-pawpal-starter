@@ -2,11 +2,6 @@
 
 ## 1. System Design
 
-**a. Initial design**
-
-- Briefly describe your initial UML design.
-- What classes did you include, and what responsibilities did you assign to each?
-
 1. Set up a pet (and owner) profile
 As a pet owner, I want to enter my basic info and create a profile for my pet, so that the app knows who it's planning care for.
 
@@ -34,11 +29,49 @@ User expects: a clean timeline (e.g. 08:00 — Morning walk (30 min) [priority: 
 Overall flow
 Set up your pet → add what needs doing → get your plan for the day.
 
+**a. Initial design**
+
+- Briefly describe your initial UML design.
+- What classes did you include, and what responsibilities did you assign to each?
+
+Overview
+The design has four classes split cleanly into two roles: Owner and Pet hold data, while Scheduler handles all decision-making logic, with Task as the shared unit of information that flows between them.
+
+Classes and responsibilities
+Owner
+Represents the person using the app. Holds a name, a list of pets (supporting one or many), and available_time — the day's time budget. Its responsibility is managing the owner's collection of pets and flattening all their tasks into a single list (get_all_tasks()) so the scheduler can weigh them against each other regardless of which pet they belong to.
+
+Pet
+Represents a single animal. Holds name, species, and its own list of tasks. Its responsibility is direct task management for that pet — adding, editing, removing, and listing tasks (add_task, edit_task, remove_task, list_tasks).
+
+Task
+Represents one unit of care (a walk, a feeding, etc.). Holds the minimum fields needed to schedule it: name, duration, priority, and pet_name — the last of which traces a task back to its owning pet once tasks from multiple pets are combined into one list. Its responsibility is representing that data and computing a priority_score() for sorting.
+
+Scheduler
+The engine of the system. Holds the working state for building a plan: the tasks to schedule, available_time, start_time, plus the results (scheduled_items, skipped_tasks). Its responsibility is the actual decision-making — sorting tasks by priority (sort_tasks), dropping ones that don't fit in the available time (filter_tasks), assembling the final timeline (generate_plan), justifying the choices (explain), and formatting the output (display_plan).
+
+Relationships
+*Owner -- Pet (composition, 1-to-many) — an owner has one or more pets; pets belong to exactly one owner.
+*Pet -- Task (composition, 1-to-many) — a pet has many tasks; each task belongs to one pet.
+Owner ..> Scheduler (dependency) — the owner supplies the scheduler with its flattened tasks and time constraint, but doesn't own or contain the scheduler.
+Scheduler ..> Task (dependency) — the scheduler reads, sorts, and filters tasks, but doesn't own them; ownership stays with Pet.
+This is the simplified/MVP version of the design — it reflects only the attributes and methods required by the README's core loop (owner/pet info → tasks with duration+priority → generate and display a plan), with earlier stretch features (categories, recurrence, conflict handling, completion tracking) deliberately left out for now.
+
 **b. Design changes**
 
 - Did your design change during implementation?
 - If yes, describe at least one change and why you made it.
 
+Yes — after reviewing the initial class stubs, I found a few places where the design didn't fully support its own methods, and updated both pawpal_system.py and diagrams/uml_draft.mmd to fix them.
+
+The main change was adding a task_id field to Task. Originally, Pet.edit_task() and Pet.remove_task() both took a task_id parameter, but Task had no task_id attribute anywhere — there was nothing for those methods to actually match against. I added an auto-generated task_id (via uuid) so tasks can be reliably identified and updated, even if two tasks share the same name.
+
+I also tightened a few relationships that existed in name only:
+
+Pet.add_task() now force-sets task.pet_name to the pet it's being added to, instead of trusting whoever created the Task to set it correctly — this prevents a task from silently pointing to the wrong pet.
+Task.priority is now validated against "low"/"medium"/"high" on creation, since nothing previously stopped a typo like "High" from silently breaking the scheduler's sorting later.
+Owner.add_pet() now rejects duplicate pet names, since pet-name lookups (get_pet()) and grouping the plan by pet assume names are unique.
+I made these changes because they were bugs waiting to happen once real scheduling logic was implemented — better to catch a missing task_id or an unvalidated priority at design time than debug a silently wrong daily plan later. I updated the UML diagram to match by adding task_id to Task.
 ---
 
 ## 2. Scheduling Logic and Tradeoffs

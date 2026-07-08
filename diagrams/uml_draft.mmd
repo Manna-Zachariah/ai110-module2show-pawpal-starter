@@ -23,6 +23,7 @@ classDiagram
         -duration: int
         -priority: String
         -pet_name: String
+        -task_id: String
         +priority_score() int
         +__str__() String
     }
@@ -33,6 +34,7 @@ classDiagram
         -start_time: String
         -scheduled_items: List
         -skipped_tasks: List~Task~
+        +from_owner(owner: Owner, start_time: String) Scheduler
         +sort_tasks() void
         +filter_tasks() void
         +generate_plan() void
