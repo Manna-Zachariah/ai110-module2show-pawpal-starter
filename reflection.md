@@ -7,6 +7,33 @@
 - Briefly describe your initial UML design.
 - What classes did you include, and what responsibilities did you assign to each?
 
+1. Set up a pet (and owner) profile
+As a pet owner, I want to enter my basic info and create a profile for my pet, so that the app knows who it's planning care for.
+
+When the user first opens the app, they provide a few basic details about themselves and their pet — the pet's name and type/breed (e.g. "Biscuit, a Golden Retriever"). This profile is the foundation everything else attaches to, and the user can come back and update it later.
+
+System captures: owner name, pet name, pet type/breed
+User expects: the profile to persist and appear throughout the app
+
+2. Add or edit a care task
+As a pet owner, I want to add the things my pet needs (walks, feeding, meds, grooming, enrichment) and say how long each takes and how important it is, so that the app has a full list of what needs to happen.
+
+The user adds tasks one at a time, giving each a name plus — at minimum — a duration (minutes) and a priority (high / medium / low). They can edit or remove tasks later. This collection is what the scheduler reasons over.
+
+System captures: task name, duration, priority (optionally preferred time or recurrence)
+User expects: to see their running task list and be able to change it
+
+3. Generate and view today's plan
+As a pet owner, I want to tell the app how much time I have and have it build a daily schedule from my tasks, so that I know exactly what to do and when — without dropping anything important.
+
+The user requests a plan, providing constraints like total time available. The scheduler sorts tasks by priority and duration, fits what it can into the available time, and skips or defers lower-priority tasks when time runs out. The result is a clear, time-ordered schedule — ideally with a short explanation of why it looks that way.
+
+System uses: the task list plus constraints (time, priority, preferences)
+User expects: a clean timeline (e.g. 08:00 — Morning walk (30 min) [priority: high]) and the reasoning behind it
+
+Overall flow
+Set up your pet → add what needs doing → get your plan for the day.
+
 **b. Design changes**
 
 - Did your design change during implementation?

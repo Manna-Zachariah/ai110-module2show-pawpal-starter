@@ -1,0 +1,46 @@
+classDiagram
+    class Owner {
+        -name: String
+        -pets: List~Pet~
+        -available_time: int
+        +add_pet(pet: Pet) void
+        +get_pet(name: String) Pet
+        +get_all_tasks() List~Task~
+    }
+
+    class Pet {
+        -name: String
+        -species: String
+        -tasks: List~Task~
+        +add_task(task: Task) void
+        +edit_task(task_id: String) void
+        +remove_task(task_id: String) void
+        +list_tasks() List~Task~
+    }
+
+    class Task {
+        -name: String
+        -duration: int
+        -priority: String
+        -pet_name: String
+        +priority_score() int
+        +__str__() String
+    }
+
+    class Scheduler {
+        -tasks: List~Task~
+        -available_time: int
+        -start_time: String
+        -scheduled_items: List
+        -skipped_tasks: List~Task~
+        +sort_tasks() void
+        +filter_tasks() void
+        +generate_plan() void
+        +explain() String
+        +display_plan() String
+    }
+
+    Owner "1" *-- "1..*" Pet : has
+    Pet "1" *-- "*" Task : has
+    Owner ..> Scheduler : provides tasks + constraints to
+    Scheduler ..> Task : sorts/filters/schedules
